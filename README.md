@@ -72,4 +72,5 @@ Here's the list of all labels I use in all my repos (for consistency).\
 | windows | ``#362725`` | Related to Windows OS |
 | macOS | ``#362725`` | Related to macOS |
 | linux | ``#362725`` | Related to Linux OS |
+| end of life | ``#010101`` | Related to the end of life of the product |
 
