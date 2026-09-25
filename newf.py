@@ -1,12 +1,18 @@
 from rich.theme import Theme
 from rich.console import Console
-import subprocess
-import sys
+import subprocess,sys
+import json
 from time import sleep
 
 # IMPORTANT VARIABLES
+BOOKNAME = 'labels_book.json'
 USER_OS = None
 SH_OPTION = None
+
+# READ CONFIG
+with open("config.json","r") as file:
+    configdata = json.load(file)
+LINKED_REPO = configdata["link"]
 
 # DEFINING RICH STYLES
 them = Theme({
@@ -57,15 +63,141 @@ If you don't trust this project, please abort this script.
     return
 
 def allocator():
+    CMDS = {'l':create_book,'c':create_label,'d':delete_label,'r':clone_label,'w':link_repo,'q':look_label}
+
     # MAIN CODE
     csl.print("""\n[b]What do you want to do ?[/b]
     > create a/look into the labels book (l)
+    > search a label into the labels book (q)
     > create a new label in your labels book (c)
     > delete a label from your labels book (d)
-    > import labels from your labels book into a repo (r)
-    > link your labels book to a repo (w)
+    > import (clone) labels from your labels book into a repo (r)
+    > link or unlink your labels book to a repo (w)
+    > EXIT (e)
     """)
-#gh label list --json name,description,color > t.txt
+    cx = input()
+    if cx.lower in CMDS:
+        if cx.lower=='e':
+            return
+        CMDS[cx.lower]()
+    else:
+        csl.print("Unrecognised command. Please insert a letter among l,c,d,r,w,e,q",style="error")
+        allocator()
+
+# UTILITIES
+def create_book(show=True):
+    # create or look into the labels book
+    try:
+        with open(BOOKNAME,'r',encoding='utf-8') as book:
+            csl.print("Reading the labels book",style="normal")
+            sleep(1)
+            data = json.load(book)
+        if show:
+            for label in data:
+                csl.print(f'{label["name"]} | {label["description"]} | {label["color"]}')
+        else:
+            return data
+    except (FileNotFoundError, FileExistsError):
+        csl.print("Labels book not found. Creating a new one.")
+        sleep(1)
+        with open(BOOKNAME,"w",encoding='utf-8') as book:
+            json.dump([],book)
+        csl.print("Labels book created",style='success')
+        if not show:
+            return []
+    except Exception as e:
+        raise e
+
+def create_label():
+    # create label DIRECTLY on the labels book
+    csl.print('Be aware no checks are made (does exist, color is correct'.,style='warning')
+    csl.print("Indicate your label name :",end=" ",style="normal")
+    n = input()
+    csl.print("Indicate your label description :",end=' ',style="normal")
+    desc = input()
+    csl.print("Indicate your label color : expected format : #xxxxxx",end=' ',style="normal")
+    clr = input()
+    labels = create_book(False)
+    labels.append({'name':n,'description':desc,'color':clr})
+    with open(BOOKNAME,'w',encoding='utf-8') as book:
+        json.dump(labels,book)
+    csl.print(f"Successfully created the label [not normal][label_add]{n}[/label_add][/not normal]",style="normal")
+    if LINKED_REPO!="":
+        csl.print("Would you like to force-create the label on your linked repo ? (y=yes)",style='bold')
+        x = input()
+        if x.lower=='y':
+            try:
+                subprocess.run(f"gh label create {n} -c {clr} -d {desc} -R {LINKED_REPO} --force")
+                csl.print("Succeeded",style="success")
+            except:
+                csl.print("An error occured : the label was not created on the linked repo.\nDo it by hands !",style="error")
+    return
+
+def delete_label():
+    # delete label DIRECTLY on the labels book
+    csl.print("Indicate your label name (case-sensitive) :",end=" ",style="normal")
+    n = input()
+    labels = create_book(False)
+    for i in range(len(labels)):
+        if labels[i]['name']==n:
+            labels.pop(i)
+            break
+    else:
+        csl.print(f"No label with the name {n} found !",style="error")
+        return
+    with open(BOOKNAME,'w',encoding='utf-8') as book:
+        json.dump(labels,book)
+        csl.print(f"Successfully deleted the label [not normal][label_remove]{n}[/label_remove][/not normal]",style="normal")
+        if LINKED_REPO!="":
+            csl.print("Would you like to force-delete the label on your linked repo ? (y=yes)",style='bold')
+            x = input()
+            if x.lower=='y':
+                try:
+                    subprocess.run(f"gh label delete {n} -R {LINKED_REPO} --yes")
+                except:
+                    csl.print("An error occured : the label was not deleted on the linked repo.\nDo it by hands !",style="error")
+    return
+
+def link_repo():
+    global LINKED_REPO
+    # link or unlink repo
+    csl.print("Link with :",end=' ',style='bold')
+    refx = input()
+    if refx!="":
+        csl.print(f"Your local labels book will be synced with {refx}. That means each time you use the labeler, updates will be made automatically.",style='normal')
+        csl.print("Write Y if you accept :",end=' ',style='normal')
+        if input().lower()=='y':
+            LINKED_REPO = refx
+            configdata['link'] = refx
+            save_config()
+        else:
+            csl.print('ABORTED\n',style='error')
+    else:
+        LINKED_REPO = refx
+        configdata['link'] = refx
+        csl.print("Successfully unlink your labels book.")
+
+def look_label():
+    csl.print("Search for :",style="normal",end=" ")
+    x = input()
+    if LINKED_REPO=="":
+        csl.print("No linked repo found. Cannot search a specific label")
+        return
+    subprocess.run(f"gh label list --search {x} -R {LINKED_REPO}")
+
+def clone_label():
+    csl.print("What is your destination repo ?",style="bold")
+    target = input()
+    csl.print("Would you like to use your linked repo (r) or your local labels book (b) ?")
+    q = input()
+    if 
+
+# DING
+def sync_labels():
+    subprocess.run("gh label list --json name,description,color > t.txt",shell=SH_OPTION)
+
+def save_config():pass
+#
 
 
 # NORMAL ACTIONS
