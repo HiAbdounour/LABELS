@@ -1,10 +1,7 @@
-import subprocess
-import sys
-from time import sleep
+
 from tkinter import StringVar
 
-USER_OS = None
-SH_OPTION = None
+
 
 def controll():
     """
