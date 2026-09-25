@@ -7,6 +7,7 @@ from time import sleep
 # DEFINING RICH STYLES
 them = Theme({
     "normal": "default on default",
+    "success": "green",
     "warning": "yellow",
     "error": "bold red",
     "label_info": "black on white", # will probably not use that
@@ -37,5 +38,15 @@ If you don't trust this project, please abort this script.
 """,style="warning") # reminder for shell=True ==> security considerations in python docs
     sleep(5)
 sleep(0.5)
+
+# LOOKING FOR GITHUB CLI
+csl.print("Looking for GitHub CLI ...",style="normal")
+cli = subprocess.run("gh --help",shell=SH_OPTION,capture_output=True)
+sleep(1)
+if cli.returncode!=0:
+    csl.print("ERROR ! GitHub CLI was not found on your machine !",style="error")
+    csl.print("The Labeler cannot (yet) install GitHub CLI itself. You must install it yourself.")
+    raise RuntimeError("Abort programm : GitHub CLI") # evolve this shit
+csl.print("GitHub CLI successfully found !",style="success")
 
 
