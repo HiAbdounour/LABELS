@@ -60,6 +60,11 @@ If you don't trust this project, please abort this script.
         csl.print("The Labeler cannot (yet) install GitHub CLI itself. You must install it yourself.")
         return
     csl.print("GitHub CLI successfully found !",style="success")
+
+    # UPDATE SYNC
+    if LINKED_REPO!="":
+        csl.print("A linked repo was found on the configuration.\nUpdating your local labels book with changes.",style="normal")
+        sync_labels()
     return
 
 def allocator():
@@ -110,7 +115,7 @@ def create_book(show=True):
 
 def create_label():
     # create label DIRECTLY on the labels book
-    csl.print('Be aware no checks are made (does exist, color is correct'.,style='warning')
+    csl.print('Be aware no checks are made (does exist, color is correct)',style='warning')
     csl.print("Indicate your label name :",end=" ",style="normal")
     n = input()
     csl.print("Indicate your label description :",end=' ',style="normal")
@@ -173,8 +178,8 @@ def link_repo():
         else:
             csl.print('ABORTED\n',style='error')
     else:
-        LINKED_REPO = refx
-        configdata['link'] = refx
+        LINKED_REPO = ""
+        configdata['link'] = ""
         csl.print("Successfully unlink your labels book.")
 
 def look_label():
@@ -188,16 +193,47 @@ def look_label():
 def clone_label():
     csl.print("What is your destination repo ?",style="bold")
     target = input()
-    csl.print("Would you like to use your linked repo (r) or your local labels book (b) ?")
+    csl.print("Would you like to use your linked repo (r) or your local labels book (b) ? Default is local")
     q = input()
-    if 
+    if q=='r':
+        csl.print(f"Using {LINKED_REPO} as source for cloning",style='normal')
+        sleep(1)
+        csl.print("Would you like to keep your existing labels (soft), to overwrite existing labels (hard) or to erase all existing labels (bare) ?")
+        ds = input()
+        if ds.lower()=='bare':
+            bare_clone(target)
+        else:
+            xy = "-f" if ds.lower()=='hard' else ""
+            csl.print(f'Cloning labels from {LINKED_REPO} to {target}',style="normal")
+            subprocess.run(f"gh label clone {LINKED_REPO} -R {target} {xy}",shell=SH_OPTION)
+    else:
+        csl.print("Do you want to override the existing labels ? (y=yes)",end=' ',style="normal")
+        xx = "-f" if input().lower()=='y' else ""
+        labels = create_book(False)
+        csl.print(f'Cloning labels from LOCAL LABELS BOOK to {target}',style="normal")
+        for label in labels:
+            subprocess.run(f"gh label create {label['name']} -c {label['color']} -d {label['description']} -R {target} {xx}",shell=SH_OPTION)
+        csl.print("Note that existing labels on repo that does not match a name from your labels book remains.",style="warning")
+
+    csl.print("Successfully clone labels",style="success")
+    return
 
 # DING
 def sync_labels():
-    subprocess.run("gh label list --json name,description,color > t.txt",shell=SH_OPTION)
+    subprocess.run(f"gh label list --json name,description,color -R {LINKED_REPO}> t.txt",shell=SH_OPTION)
 
-def save_config():pass
-#
+def bare_clone(target):
+    csl.print(f"Erasing all existing labels in {target}",style='normal')
+    data = subprocess.run(f"gh label ls --json name -R {target}",shell=SH_OPTION,capture_output=True)
+    for label in data:
+        subprocess.run(f"gh label delete {label['name']} -R {target} --yes",shell=SH_OPTION)
+    csl.print(f'Cloning labels from {LINKED_REPO} to {target}',style="normal")
+    subprocess.run(f"gh label clone {LINKED_REPO} -R {target} -f",shell=SH_OPTION)
+    return
+
+def save_config():
+    if LINKED_REPO!="":
+        subprocess.run(f"gh label list --json name,description,color -R {LINKED_REPO} > {BOOKNAME}")
 
 
 # NORMAL ACTIONS
