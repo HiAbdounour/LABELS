@@ -62,8 +62,7 @@ If you don't trust this project, please abort this script.
 
     # UPDATE SYNC
     if LINKED_REPO!="":
-        csl.print("A linked repo was found on the configuration.\nUpdating your local labels book with changes.",style="normal")
-        sync_labels()
+        csl.print(f"A linked repo was found on the configuration : {LINKED_REPO}",style="normal")
     else:
         csl.print("[b]Please set a repo as your labels book :[/b]",end=' ',style='warning')
         link_repo()
@@ -194,10 +193,6 @@ def bare_clone(target):
     csl.print(f'Cloning labels from {LINKED_REPO} to {target}',style="normal")
     subprocess.run(f"gh label clone {LINKED_REPO} -R {target} -f",shell=SH_OPTION)
     return
-
-def save_config():
-    if LINKED_REPO!="":
-        subprocess.run(f"gh label list --json name,description,color -R {LINKED_REPO} > {BOOKNAME}")
 
 
 # NORMAL ACTIONS
