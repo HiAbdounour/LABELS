@@ -81,10 +81,10 @@ def allocator():
     > EXIT (e)
     """)
     cx = input()
-    if cx.lower in CMDS:
-        if cx.lower=='e':
+    if cx.lower() in CMDS:
+        if cx.lower()=='e':
             return
-        CMDS[cx.lower]()
+        CMDS[cx.lower()]()
     else:
         csl.print("Unrecognised command. Please insert a letter among l,c,d,r,w,e,q",style="error")
         allocator()
@@ -130,7 +130,7 @@ def create_label():
     if LINKED_REPO!="":
         csl.print("Would you like to force-create the label on your linked repo ? (y=yes)",style='bold')
         x = input()
-        if x.lower=='y':
+        if x.lower()=='y':
             try:
                 subprocess.run(f"gh label create {n} -c {clr} -d {desc} -R {LINKED_REPO} --force")
                 csl.print("Succeeded",style="success")
@@ -156,7 +156,7 @@ def delete_label():
         if LINKED_REPO!="":
             csl.print("Would you like to force-delete the label on your linked repo ? (y=yes)",style='bold')
             x = input()
-            if x.lower=='y':
+            if x.lower()=='y':
                 try:
                     subprocess.run(f"gh label delete {n} -R {LINKED_REPO} --yes")
                 except:
