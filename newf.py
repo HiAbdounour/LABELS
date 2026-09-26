@@ -62,7 +62,7 @@ If you don't trust this project, please abort this script.
 
     # UPDATE SYNC
     if LINKED_REPO!="":
-        csl.print(f"A linked repo was found on the configuration : {LINKED_REPO}",style="normal")
+        csl.print(f"A linked repo was found on the configuration : [cyan]{LINKED_REPO}[/cyan]",style="normal")
     else:
         csl.print("[b]Please set a repo as your labels book :[/b]",end=' ',style='warning')
         link_repo()
@@ -83,11 +83,11 @@ def allocator():
     """)
     cx = input()
     if cx.lower() in CMDS:
-        if cx.lower()=='e':
-            return
         CMDS[cx.lower()]()
         allocator()
     else:
+        if cx.lower()=='e':
+            return
         csl.print("Unrecognised command. Please insert a letter among l,c,d,r,w,e,q",style="error")
         allocator()
 
@@ -144,7 +144,7 @@ def link_repo():
         if input().lower()=='y':
             LINKED_REPO = refx
             configdata['link'] = refx
-            save_config()
+            save_config(configdata)
         else:
             csl.print('ABORTED\n',style='error')
     else:
@@ -181,9 +181,6 @@ def clone_label():
     return
 
 # DING
-def sync_labels():
-    subprocess.run(f"gh label list --json name,description,color -R {LINKED_REPO}> t.txt",shell=SH_OPTION)
-
 def bare_clone(target):
     csl.print(f"Erasing all existing labels in {target}",style='normal')
     data = subprocess.run(f"gh label ls --json name -R {target}",shell=SH_OPTION,capture_output=True)
@@ -193,6 +190,10 @@ def bare_clone(target):
     csl.print(f'Cloning labels from {LINKED_REPO} to {target}',style="normal")
     subprocess.run(f"gh label clone {LINKED_REPO} -R {target} -f",shell=SH_OPTION)
     return
+
+def save_config(config):
+    with open("config.json",'w') as file:
+        json.dump(config,file)
 
 
 # NORMAL ACTIONS
