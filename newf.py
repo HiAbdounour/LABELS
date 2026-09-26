@@ -66,7 +66,7 @@ If you don't trust this project, please abort this script.
         sync_labels()
     else:
         csl.print("[b]Please set a repo as your labels book :[/b]",end=' ',style='warning')
-        ///
+        link_repo()
     return
 
 def allocator():
@@ -74,7 +74,7 @@ def allocator():
 
     # MAIN CODE
     csl.print("""\n[b]What do you want to do ?[/b]
-    > create a/look into the labels book (l)
+    > look into the labels book (l)
     > search a label into the labels book (q)
     > [s]create a new label in your labels book (c)[/s]
     > delete a label from your labels book (d)
@@ -97,10 +97,12 @@ def create_book(show=True):
     # create or look into the labels book
     csl.print("Reading the labels book",style="normal")
     sleep(1)
+    if LINKED_REPO=="":
+        csl.print("No linked repo found. Cannot look into the labels book",style="error")
     if show:
-        subprocess.run("gh label list --sort name",shell=SH_OPTION)
+        subprocess.run(f"gh label list -R {LINKED_REPO} --sort name",shell=SH_OPTION)
     else:
-        data = subprocess.run("gh label list --json name,description,color",shell=SH_OPTION,capture_output=True)
+        data = subprocess.run(f"gh label list -R {LINKED_REPO} --json name,description,color",shell=SH_OPTION,capture_output=True)
         return list(data)
 
 def create_label():
@@ -116,6 +118,7 @@ def create_label():
     x = '-f' if input().lower()=='y' else ''
     try:
         subprocess.run(f"gh label create {n} -c {clr} -d {desc} -R {LINKED_REPO} {x}")
+        raise Exception("DUMB is not working !") # -R does not exist for create !!!
         csl.print("Succeeded",style="success")
     except:
         csl.print("An error occured : the label was not created on the linked repo.\nDo it by hands !",style="error")
@@ -125,26 +128,11 @@ def delete_label():
     # delete label DIRECTLY on the labels book
     csl.print("Indicate your label name (case-sensitive) :",end=" ",style="normal")
     n = input()
-    labels = create_book(False)
-    for i in range(len(labels)):
-        if labels[i]['name']==n:
-            labels.pop(i)
-            break
+    sleep(0.5)
+    if LINKED_REPO!="":
+        subprocess.run(f"gh label delete {n} -R {LINKED_REPO}")
     else:
-        csl.print(f"No label with the name {n} found !",style="error")
-        return
-    with open(BOOKNAME,'w',encoding='utf-8') as book:
-        json.dump(labels,book)
-        csl.print(f"Successfully deleted the label [not normal][label_remove]{n}[/label_remove][/not normal]",style="normal")
-        if LINKED_REPO!="":
-            csl.print("Would you like to force-delete the label on your linked repo ? (y=yes)",style='bold')
-            x = input()
-            if x.lower()=='y':
-                try:
-                    subprocess.run(f"gh label delete {n} -R {LINKED_REPO} --yes")
-                except:
-                    csl.print("An error occured : the label was not deleted on the linked repo.\nDo it by hands !",style="error")
-    return
+        csl.print("No linked repo found. Cannot delete the label",style="error")
 
 def link_repo():
     global LINKED_REPO
@@ -152,8 +140,8 @@ def link_repo():
     csl.print("Link with :",end=' ',style='bold')
     refx = input()
     if refx!="":
-        csl.print(f"Your local labels book will be synced with {refx}. That means each time you use the labeler, updates will be made automatically.",style='normal')
-        csl.print("Write Y if you accept :",end=' ',style='normal')
+        csl.print(f"Your local labels book will now be synced with {refx}.",style='normal')
+        csl.print("Write (y) without parenthesis if you accept :",end=' ',style='normal')
         if input().lower()=='y':
             LINKED_REPO = refx
             configdata['link'] = refx
@@ -169,37 +157,26 @@ def look_label():
     csl.print("Search for :",style="normal",end=" ")
     x = input()
     if LINKED_REPO=="":
-        csl.print("No linked repo found. Cannot search a specific label")
+        csl.print("No linked repo found. Cannot search a specific label",style="error")
         return
     subprocess.run(f"gh label list --search {x} -R {LINKED_REPO}")
 
 def clone_label():
     csl.print("What is your destination repo ?",style="bold")
     target = input()
-    csl.print("Would you like to use your linked repo (r) or your local labels book (b) ? Default is local")
-    q = input()
-    if q=='r':
-        if LINKED_REPO=="":
-            csl.print("No linked repo set",style="error")
-            return
-        csl.print(f"Using {LINKED_REPO} as source for cloning",style='normal')
-        sleep(1)
-        csl.print("Would you like to keep your existing labels (soft), to overwrite existing labels (hard) or to erase all existing labels (bare) ?")
-        ds = input()
-        if ds.lower()=='bare':
-            bare_clone(target)
-        else:
-            xy = "-f" if ds.lower()=='hard' else ""
-            csl.print(f'Cloning labels from {LINKED_REPO} to {target}',style="normal")
-            subprocess.run(f"gh label clone {LINKED_REPO} -R {target} {xy}",shell=SH_OPTION)
+    if LINKED_REPO=="":
+        csl.print("No linked repo found. Impossible to clone !",style="error")
+        return
+    csl.print(f"Using {LINKED_REPO} as source for cloning",style='normal')
+    sleep(1)
+    csl.print("Would you like to keep your existing labels (soft), to overwrite existing labels (hard) or to erase all existing labels (bare) ?")
+    ds = input()
+    if ds.lower()=='bare':
+        bare_clone(target)
     else:
-        csl.print("Do you want to override the existing labels ? (y=yes)",end=' ',style="normal")
-        xx = "-f" if input().lower()=='y' else ""
-        labels = create_book(False)
-        csl.print(f'Cloning labels from LOCAL LABELS BOOK to {target}',style="normal")
-        for label in labels:
-            subprocess.run(f"gh label create {label['name']} -c {label['color']} -d {label['description']} -R {target} {xx}",shell=SH_OPTION)
-        csl.print("Note that existing labels on repo that does not match a name from your labels book remains.",style="warning")
+        xy = "-f" if ds.lower()=='hard' else ""
+        csl.print(f'Cloning labels from {LINKED_REPO} to {target}',style="normal")
+        subprocess.run(f"gh label clone {LINKED_REPO} -R {target} {xy}",shell=SH_OPTION)
 
     csl.print("Successfully clone labels",style="success")
     return
@@ -212,6 +189,7 @@ def bare_clone(target):
     csl.print(f"Erasing all existing labels in {target}",style='normal')
     data = subprocess.run(f"gh label ls --json name -R {target}",shell=SH_OPTION,capture_output=True)
     for label in data:
+        csl.print(f"> Erasing [not normal][label_remove]{label['name']}[/label_remove][/not normal]",style="normal")
         subprocess.run(f"gh label delete {label['name']} -R {target} --yes",shell=SH_OPTION)
     csl.print(f'Cloning labels from {LINKED_REPO} to {target}',style="normal")
     subprocess.run(f"gh label clone {LINKED_REPO} -R {target} -f",shell=SH_OPTION)
