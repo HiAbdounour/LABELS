@@ -5,7 +5,6 @@ import json
 from time import sleep
 
 # IMPORTANT VARIABLES
-BOOKNAME = 'labels_book.json'
 USER_OS = None
 SH_OPTION = None
 
@@ -65,6 +64,9 @@ If you don't trust this project, please abort this script.
     if LINKED_REPO!="":
         csl.print("A linked repo was found on the configuration.\nUpdating your local labels book with changes.",style="normal")
         sync_labels()
+    else:
+        csl.print("[b]Please set a repo as your labels book :[/b]",end=' ',style='warning')
+        ///
     return
 
 def allocator():
@@ -74,10 +76,10 @@ def allocator():
     csl.print("""\n[b]What do you want to do ?[/b]
     > create a/look into the labels book (l)
     > search a label into the labels book (q)
-    > create a new label in your labels book (c)
+    > [s]create a new label in your labels book (c)[/s]
     > delete a label from your labels book (d)
     > import (clone) labels from your labels book into a repo (r)
-    > link or unlink your labels book to a repo (w)
+    > change the labels book link (w)
     > EXIT (e)
     """)
     cx = input()
@@ -85,6 +87,7 @@ def allocator():
         if cx.lower()=='e':
             return
         CMDS[cx.lower()]()
+        allocator()
     else:
         csl.print("Unrecognised command. Please insert a letter among l,c,d,r,w,e,q",style="error")
         allocator()
@@ -92,50 +95,30 @@ def allocator():
 # UTILITIES
 def create_book(show=True):
     # create or look into the labels book
-    try:
-        with open(BOOKNAME,'r',encoding='utf-8') as book:
-            csl.print("Reading the labels book",style="normal")
-            sleep(1)
-            data = json.load(book)
-        if show:
-            for label in data:
-                csl.print(f'{label["name"]} | {label["description"]} | {label["color"]}')
-        else:
-            return data
-    except (FileNotFoundError, FileExistsError):
-        csl.print("Labels book not found. Creating a new one.")
-        sleep(1)
-        with open(BOOKNAME,"w",encoding='utf-8') as book:
-            json.dump([],book)
-        csl.print("Labels book created",style='success')
-        if not show:
-            return []
-    except Exception as e:
-        raise e
+    csl.print("Reading the labels book",style="normal")
+    sleep(1)
+    if show:
+        subprocess.run("gh label list --sort name",shell=SH_OPTION)
+    else:
+        data = subprocess.run("gh label list --json name,description,color",shell=SH_OPTION,capture_output=True)
+        return list(data)
 
 def create_label():
     # create label DIRECTLY on the labels book
-    csl.print('Be aware no checks are made (does exist, color is correct)',style='warning')
     csl.print("Indicate your label name :",end=" ",style="normal")
     n = input()
     csl.print("Indicate your label description :",end=' ',style="normal")
     desc = input()
-    csl.print("Indicate your label color : expected format : #xxxxxx",end=' ',style="normal")
+    csl.print("Indicate your label color : expected format : #xxxxxx (no check made)",end=' ',style="normal")
     clr = input()
-    labels = create_book(False)
-    labels.append({'name':n,'description':desc,'color':clr})
-    with open(BOOKNAME,'w',encoding='utf-8') as book:
-        json.dump(labels,book)
-    csl.print(f"Successfully created the label [not normal][label_add]{n}[/label_add][/not normal]",style="normal")
-    if LINKED_REPO!="":
-        csl.print("Would you like to force-create the label on your linked repo ? (y=yes)",style='bold')
-        x = input()
-        if x.lower()=='y':
-            try:
-                subprocess.run(f"gh label create {n} -c {clr} -d {desc} -R {LINKED_REPO} --force")
-                csl.print("Succeeded",style="success")
-            except:
-                csl.print("An error occured : the label was not created on the linked repo.\nDo it by hands !",style="error")
+    sleep(0.5)
+    csl.print("Would you like to force-create the label on your linked repo ? (y=yes)",style='bold')
+    x = '-f' if input().lower()=='y' else ''
+    try:
+        subprocess.run(f"gh label create {n} -c {clr} -d {desc} -R {LINKED_REPO} {x}")
+        csl.print("Succeeded",style="success")
+    except:
+        csl.print("An error occured : the label was not created on the linked repo.\nDo it by hands !",style="error")
     return
 
 def delete_label():
@@ -196,6 +179,9 @@ def clone_label():
     csl.print("Would you like to use your linked repo (r) or your local labels book (b) ? Default is local")
     q = input()
     if q=='r':
+        if LINKED_REPO=="":
+            csl.print("No linked repo set",style="error")
+            return
         csl.print(f"Using {LINKED_REPO} as source for cloning",style='normal')
         sleep(1)
         csl.print("Would you like to keep your existing labels (soft), to overwrite existing labels (hard) or to erase all existing labels (bare) ?")
@@ -239,3 +225,4 @@ def save_config():
 # NORMAL ACTIONS
 prerequisities()
 allocator()
+csl.print("Labeler is closing ...",style="normal")
