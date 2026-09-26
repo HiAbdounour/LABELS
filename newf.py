@@ -87,6 +87,8 @@ def allocator():
         allocator()
     else:
         if cx.lower()=='e':
+            csl.print("Labeler is closing ...",style="normal")
+            sleep(1)
             return
         csl.print("Unrecognised command. Please insert a letter among l,c,d,r,w,e,q",style="error")
         allocator()
@@ -150,6 +152,7 @@ def link_repo():
     else:
         LINKED_REPO = ""
         configdata['link'] = ""
+        save_config(configdata)
         csl.print("Successfully unlink your labels book.")
 
 def look_label():
@@ -171,7 +174,7 @@ def clone_label():
     csl.print("Would you like to keep your existing labels (soft), to overwrite existing labels (hard) or to erase all existing labels (bare) ?")
     ds = input()
     if ds.lower()=='bare':
-        bare_clone(target)
+        return bare_clone(target)
     else:
         xy = "-f" if ds.lower()=='hard' else ""
         csl.print(f'Cloning labels from {LINKED_REPO} to {target}',style="normal")
@@ -184,9 +187,9 @@ def clone_label():
 def bare_clone(target):
     csl.print(f"Erasing all existing labels in {target}",style='normal')
     data = subprocess.run(f"gh label ls --json name -R {target}",shell=SH_OPTION,capture_output=True)
-    for label in data:
+    for label in eval(data.stdout):
         csl.print(f"> Erasing [not normal][label_remove]{label['name']}[/label_remove][/not normal]",style="normal")
-        subprocess.run(f"gh label delete {label['name']} -R {target} --yes",shell=SH_OPTION)
+        subprocess.run(f'gh label delete "{label["name"]}" -R {target} --yes',shell=SH_OPTION)
     csl.print(f'Cloning labels from {LINKED_REPO} to {target}',style="normal")
     subprocess.run(f"gh label clone {LINKED_REPO} -R {target} -f",shell=SH_OPTION)
     return
@@ -199,4 +202,3 @@ def save_config(config):
 # NORMAL ACTIONS
 prerequisities()
 allocator()
-csl.print("Labeler is closing ...",style="normal")
