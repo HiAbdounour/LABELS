@@ -57,7 +57,7 @@ If you don't trust this project, please abort this script.
     if cli.returncode!=0:
         csl.print("ERROR ! GitHub CLI was not found on your machine !",style="error")
         csl.print("The Labeler cannot (yet) install GitHub CLI itself. You must install it yourself.")
-        return
+        return False
     csl.print("GitHub CLI successfully found !",style="success")
 
     # UPDATE SYNC
@@ -66,7 +66,7 @@ If you don't trust this project, please abort this script.
     else:
         csl.print("[b]Please set a repo as your labels book :[/b]",end=' ',style='warning')
         link_repo()
-    return
+    return True
 
 def allocator():
     CMDS = {'l':create_book,'c':create_label,'d':delete_label,'r':clone_label,'w':link_repo,'q':look_label}
@@ -200,5 +200,6 @@ def save_config(config):
 
 
 # NORMAL ACTIONS
-prerequisities()
-allocator()
+gh = prerequisities()
+if gh:
+    allocator()
