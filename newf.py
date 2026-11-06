@@ -28,7 +28,16 @@ csl = Console(theme=them)
 def prerequisities():
     global USER_OS,SH_OPTION
     # STARTING POINT
-    csl.print("Welcome to interactive labeler LABELS",style="normal")
+    csl.print("""
+     _       ____  ____     ___  _     _____
+| |     /    ||    \\   /  _]| |   / ___/
+| |    |  o  ||  o  ) /  [_ | |  (   \\_ 
+| |___ |     ||     ||    _]| |___ \\__  |
+|     ||  _  ||  O  ||   [_ |     /  \\ |
+|     ||  |  ||     ||     ||     \\    |
+|_____||__|__||_____||_____||_____|\\___|
+                                        
+    """,style="normal")
     sleep(1)
     csl.print("[b]Note to the user :[/b]",style='normal')
     csl.print("""
